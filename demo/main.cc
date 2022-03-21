@@ -7,6 +7,7 @@
 #include <terminal/Terminal.hh>
 #include <imgui.h>
 #include "imgui_impl_sdl.h"
+#include "imgui_impl_opengl3.h"
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -37,8 +38,9 @@ main(int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    const char* glsl_version = "#version 130";
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_DisplayMode current;
     SDL_GetCurrentDisplayMode(0, &current);
     SDL_Window *window = SDL_CreateWindow("ImGui Terminal Demo",
@@ -48,11 +50,19 @@ main(int argc, char *argv[])
                                           720,
                                           SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     SDL_GLContext glcontext = SDL_GL_CreateContext(window);
+    SDL_GL_MakeCurrent(window, glcontext);
+    SDL_GL_SetSwapInterval(1);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
 
     // Setup ImGui binding
-    ImGui_ImplSdlGL2_Init(window);
+    //ImGui_ImplSdlGL2_Init(window);
+    ImGui_ImplSDL2_InitForOpenGL(window, glcontext);
+    ImGui_ImplOpenGL3_Init(glsl_version);
 
-    ImVec4 clear_color = ImColor(114, 144, 154);
+    //ImVec4 clear_color = ImColor(114, 144, 154);
+    ImVec4 clear_color = ImVec4(114, 144, 154, 1.0f);
 
     auto &io = GetIO();
 
@@ -73,7 +83,6 @@ main(int argc, char *argv[])
     bool done = false;
     while (!done)
     {
-
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -81,7 +90,11 @@ main(int argc, char *argv[])
             if (event.type == SDL_QUIT)
                 done = true;
         }
-        ImGui_ImplSdlGL2_NewFrame(window);
+        //ImGui_ImplSdlGL2_NewFrame(window);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+	ImGui::NewFrame();
+
 
 		if (BeginMainMenuBar()) {
 
@@ -109,8 +122,9 @@ main(int argc, char *argv[])
     	    {
     	    	char buf[256];
     	    	ssize_t nbytes = read(shell.m_fd, buf, sizeof(buf));
-    	    	for (ssize_t i = 0; i < nbytes; i++)
+    	    	for (ssize_t i = 0; i < nbytes; i++) {
     	    		shell.m_terminal.write(buf[i]);
+		}
     	    }
 
 		}
@@ -131,7 +145,8 @@ main(int argc, char *argv[])
 
 				if (!shell.m_pid) {
 					//! @todo set term to vt100?
-					execl("/bin/bash", nullptr);
+				        std::cout << "*** HERE *** " << shell.m_pid << std::endl;
+					execl("/bin/sh", nullptr);
 					perror("execl");
 					return 102;
 				}
@@ -174,6 +189,7 @@ main(int argc, char *argv[])
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
     }
 
@@ -181,7 +197,7 @@ main(int argc, char *argv[])
 #endif
 
     // Cleanup
-    ImGui_ImplSdlGL2_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
     SDL_GL_DeleteContext(glcontext);
     SDL_DestroyWindow(window);
     SDL_Quit();

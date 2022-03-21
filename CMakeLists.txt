@@ -3,18 +3,20 @@ cmake_minimum_required(VERSION 3.0)
 
 project(ImGuiTerminal VERSION 0.1.0.0)
 
-#set(CMAKE_MODULE_PATH
-#	"${PROJECT_SOURCE_DIR}/CMake"
-#	${CMAKE_MODULE_PATH}
-#)
+set(CMAKE_MODULE_PATH
+	"${PROJECT_SOURCE_DIR}/CMake"
+	${CMAKE_MODULE_PATH}
+)
 
 find_package(SDL2)
 find_package(OpenGL)
 
 set(${PROJECT_NAME}_ImGui_SOURCE_DIR
-    "external/imgui"
+    "../imgui"
     CACHE FILEPATH
     "Location of ImGui source")
+
+include(CMakeDependentOption)
 
 # TODO: imterm currently only works on Linux ...
 cmake_dependent_option(${PROJECT_NAME}_BUILD_DEMOS
@@ -427,21 +429,26 @@ install(TARGETS imgui-terminal
     ARCHIVE DESTINATION lib
 )
 
-if(Terminal_BUILD_DEMOS)
+if(${PROJECT_NAME}_BUILD_DEMOS)
+
+    target_link_libraries(imgui-terminal ${CMAKE_DL_LIBS})
 
     add_executable(imterm
         demo/main.cc
-        demo/input.cc
-
+	demo/input.cc
         "${${PROJECT_NAME}_ImGui_SOURCE_DIR}/imgui.cpp"
         "${${PROJECT_NAME}_ImGui_SOURCE_DIR}/imgui_draw.cpp"
-        "${${PROJECT_NAME}_ImGui_SOURCE_DIR}/examples/sdl_opengl2_example/imgui_impl_sdl.cpp"
+        "${${PROJECT_NAME}_ImGui_SOURCE_DIR}/imgui_widgets.cpp"
+        "${${PROJECT_NAME}_ImGui_SOURCE_DIR}/imgui_tables.cpp"
+	"${${PROJECT_NAME}_ImGui_SOURCE_DIR}/backends/imgui_impl_sdl.cpp"
+	"${${PROJECT_NAME}_ImGui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp"
     )
 
     target_include_directories(imterm
         PRIVATE
             "${${PROJECT_NAME}_ImGui_SOURCE_DIR}"
-        	"${${PROJECT_NAME}_ImGui_SOURCE_DIR}/examples/sdl_opengl2_example"
+	    #"${${PROJECT_NAME}_ImGui_SOURCE_DIR}/examples/sdl_opengl2_example"
+        	"${${PROJECT_NAME}_ImGui_SOURCE_DIR}/backends"
         	${SDL2_INCLUDE_DIR}
         	${OPENGL_INCLUDE_DIR}
     )
